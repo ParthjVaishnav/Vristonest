@@ -50,4 +50,16 @@ export class AppointmentController {
     const exists = await this.appointmentService.checkNationalId(nationalId);
     return { exists };
   }
+
+  // src/team B/appointment/appointment.controller.ts
+@Get('check-email')
+async checkEmailExists(@Query('email') visitorEmail: string): Promise<{ exists: boolean }> {
+  if (!visitorEmail) {
+    throw new BadRequestException('Missing required query parameter: email is required.');
+  }
+
+  const exists = await this.appointmentService.checkEmailExists(visitorEmail);
+  return { exists };
+}
+
 }

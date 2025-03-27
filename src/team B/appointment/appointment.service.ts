@@ -114,4 +114,17 @@ export class AppointmentService {
       throw new InternalServerErrorException('Failed to check National ID.');
     }
   }
+
+  // src/team B/appointment/appointment.service.ts
+async checkEmailExists(visitorEmail: string): Promise<boolean> {
+  try {
+    const existingEmail = await this.appointmentRepo.findOne({
+      where: { visitorEmail },
+    });
+    return !!existingEmail; // Returns true if email exists, false otherwise
+  } catch (error) {
+    console.error('❌ Error checking email:', error);
+    throw new InternalServerErrorException('Failed to check email existence.');
+  }
+}
 }
