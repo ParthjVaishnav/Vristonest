@@ -1,5 +1,5 @@
 // src/team B/appointment/appointment.service.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Appointment } from './appointment.entity';
@@ -17,6 +17,16 @@ export class AppointmentService {
 
   async createOrUpdateAppointment(data: Partial<Appointment>): Promise<Appointment> {
     try {
+      // Check if national_id already exists in the database (only if provided)
+      if (data.national_id) {
+        const existingNationalId = await this.appointmentRepo.findOne({
+          where: { national_id: data.national_id },
+        });
+        if (existingNationalId) {
+          throw new BadRequestException('This National ID is already used for another appointment.');
+        }
+      }
+
       const existingAppointment = await this.appointmentRepo.findOne({
         where: {
           visitorEmail: data.visitorEmail,
@@ -28,6 +38,7 @@ export class AppointmentService {
       let savedAppointment: Appointment;
 
       if (existingAppointment) {
+        // Update existing appointment (VisitorForm submission)
         savedAppointment = await this.appointmentRepo.save({
           ...existingAppointment,
           national_id: data.national_id || existingAppointment.national_id,
@@ -40,6 +51,7 @@ export class AppointmentService {
         console.log(`✅ Updated appointment for ${savedAppointment.visitorEmail}`);
         await this.visitorMailService.sendVisitorQRCode(savedAppointment);
       } else {
+        // Create new appointment (AppointmentForm submission)
         const appointment = this.appointmentRepo.create({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -71,11 +83,13 @@ export class AppointmentService {
       return savedAppointment;
     } catch (error) {
       console.error('❌ Error creating/updating appointment:', error);
+      if (error instanceof BadRequestException) {
+        throw error; // Re-throw BadRequestException to be handled by the controller
+      }
       throw new InternalServerErrorException('Failed to create or update appointment.');
     }
   }
 
-  // New method to check form status
   async checkFormStatus(visitorEmail: string, date: string, allocatedTime: string): Promise<boolean> {
     try {
       const appointment = await this.appointmentRepo.findOne({
@@ -85,6 +99,19 @@ export class AppointmentService {
     } catch (error) {
       console.error('❌ Error checking form status:', error);
       throw new InternalServerErrorException('Failed to check form status.');
+    }
+  }
+
+  // New method to check if national_id exists
+  async checkNationalId(nationalId: string): Promise<boolean> {
+    try {
+      const existingNationalId = await this.appointmentRepo.findOne({
+        where: { national_id: nationalId },
+      });
+      return !!existingNationalId; // Returns true if national_id exists, false otherwise
+    } catch (error) {
+      console.error('❌ Error checking national_id:', error);
+      throw new InternalServerErrorException('Failed to check National ID.');
     }
   }
 }
