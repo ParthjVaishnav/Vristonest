@@ -20,7 +20,7 @@ import { MailModule } from './login+register/mail/mail.module';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'endel@123',
+      password: '123456',
       database: 'CURD',
       entities: [__dirname + '/**/*.entity{.ts,.js}'], // Ensure entities are loaded
       autoLoadEntities: true,
